@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>EDAV Project</title>
+	<script type="text/javascript" src="https://d3js.org/d3.v4.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-tip/0.7.1/d3-tip.min.js"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+	<style type="text/css">
+		/* graph CSS */
+		.graphlinks {
+		  fill: none;
+		  stroke: #666;
+		  stroke-width: 0.5px;
+		}
+
+		.graphnodes {
+		  stroke: "#ccc";
+		  stroke: black;
+		  stroke-width: 1.5px;
+		}
+
+		.graphnodetext {
+		  fill: #000;
+		  font: 10px sans-serif;
+		  pointer-events: none;
+		}
+
+		.d3-tip {
+	      line-height: 1;
+	      padding: 6px;
+	      background: rgba(0, 0, 0, 0.8);
+	      color: #fff;
+	      border-radius: 4px;
+	      font-size: 12px;
+	    }
+
+	    /* MAP CSS*/
+	    .mono {
+	      font-size: 8pt;
+	      font-family: Consolas, courier;
+	      font-weight:bold;
+	      fill:black;
+	    }
+	    .details{
+	      color:white;
+	    }
+
+	    /* Tree CSS*/
+		.link {
+		  fill: none;
+		  stroke: #ccc;
+		  stroke-width: 2px;
+		}
+
+		.node circle {
+		  fill: #fff;
+		  stroke: steelblue;
+		  stroke-width: 3px;
+		}
+
+		/*bootstrap css*/
+		#dg_container {
+		    display: block;
+		    position: relative;
+		    top: -90px;
+		    visibility: hidden;
+		}
+
+		#wm_container {
+			display: block;
+		    position: relative;
+		    top: -90px;
+		    visibility: hidden;
+		}
+
+		.container-fluid {
+			background-color: "white";
+		}
+
+	</style>
+</head>
+<body>
+ 	<div class = "container-fluid">
+		<h1 align="center" id = "project_title"> EDAV Final Project: Badminton Data Analysis </h1>
+	</div>
+
+	<!-- Grey with black text -->
+	<nav class="navbar navbar-expand-sm bg-dark navbar-dark sticky-top">
+		<ul class="navbar-nav mr-auto">
+			<li class="nav-item">
+				<a class="nav-link" href="#project_title">Home </a>
+			</li>
+			<li class="nav-item">
+		        <a class="nav-link" href="#project_title">Tree Diagram</a>
+		    </li>
+		    <li class="nav-item">
+		        <a class="nav-link" href="#dg_container">Directed Graph</a>
+		    </li>
+		    <li class="nav-item">
+		        <a class="nav-link" href="#wm_container">Player Count Map</a>
+		    </li>
+		    <li class="nav-item">
+		        <a class="nav-link" href="#awards">Awards Count</a>
+		    </li>
+		</ul>
+
+
+		<ul class="navbar nav ml-auto">
+			<li class = "nav-item">	
+ 				<a class="nav-link" href="#project_title">Select Discipline: </a>			    
+			</li>
+			<li class = "nav-item" id = "selector">
+				<select class="custom-select" id = "inds">
+					<option value = 1 selected = "selected">Men's Singles</option>
+					<option value = 2>Women's Singles</option>
+					<option value = 3>Men's Doubles</option>
+					<option value = 4>Women's Doubles</option>
+					<option value = 5>Mixed Doubles</option>
+				</select>
+			</li>
+		</ul>
+
+	</nav>
+
+	<h2 align = "center"> Top 15 Badminton Players by Rankings in 2018 </h1>
+	<p align = "center"> Click to view details! </p>
+	<div id = "tree" align="center">
+	</div>
+	<div id = "dg_container">
+	</div>
+	<h2 id = "dg_title" align = "center"> Top 15 Badminton Players Head to Head Records in 2018 </h1>
+	<p align = "center"> Hover to View Player Details! Double Click to Highlight Specific Players! </p>
+	<div id = "directedgraph" align="center">
+	</div>
+	<div id = "wm_container">
+	</div>
+	<h2 align="center"> Player Count World Map in 2018 </h1>
+	<p align = "center"> Hover to View Details! Double Click and Scroll Down to View Tropies Breakdown! </p>	
+	<div id = "playercountmap" align="center">
+	</div>
+	<div id = "awards" align="center">
+	</div>
+
+
+	<script type="text/javascript">
+	// D3 code goes here
+	// data expressed as objects in javascript
+	draw_directedgraph(1);
+	draw_map(1);
+
+	// // Changes in selection
+	d3.select("#inds").on("change", function (){
+        document.getElementById("directedgraph").innerHTML = ''; //reset canvas
+        document.getElementById("playercountmap").innerHTML = ''; //reset canvas
+        
+        var sect = document.getElementById("inds");
+        var section = sect.options[sect.selectedIndex].value;
+        draw_directedgraph(section);
+        draw_map(section);
+
+    });
+
+    // FUNCTION TO DRAW TREE
+	var margin = {top: 30, right: 90, bottom: 30, left: 90};
+	var w = 1000 - margin.right - margin.left;
+	var h = 600 - margin.top - margin.bottom;
+
+	var svg = d3.select("#tree")
+				.append("svg")
+				.attr("width", w + margin.right + margin.left)
+				.attr("height", h + margin.top + margin.bottom)
+				.append("g")
+				.attr("transform", "translate(" + margin.left + "," + margin.top + ")" );
+
+	// tooltip
+	var tip = d3.tip()
+	            .attr('class', 'd3-tip')
+	            .offset([-10, 0])
+	            .html(function(d) {
+	              	if (d.data.depth >= 2){
+	              		return "Name: </strong><span class='details'>" + d.data.data.Name + "<br></span>"
+	              		+ "Nationality: </strong><span class='details'>" + d.data.data.Nationality + "<br></span>"
+	                    + "Career Win Perc: </strong><span class='details'>" + d.data.data.Win_Perc +"<br></span>"
+	                    + "Career Record: </strong><span class='details'>" + d.data.data.Career_Record +"<br></span>"
+	                    + "Career Prize: </strong><span class='details'>" + d.data.data.Prize +"<br></span>";
+	              	} else {
+	              		return null;
+	              	}
+	            });
+
+	// calls tooltip
+	svg.call(tip);
+
+	var i = 0;
+	var duration = 750;
+	var root;
+	var dataset;
+
+	// declares a tree layout and assigns the size
+	var treemap = d3.tree().size([h, w]);
+
+	d3.json("tree.json", function(d){
+		dataset = d;
+				
+		// Assigns parent, children, height, depth
+		root = d3.hierarchy(dataset, function(d) { return d.children; });
+		root.x0 = h / 2;
+		root.y0 = 0;
+
+		//function to collapse all children for a node
+		function collapse(d) {
+			if (d.children) {
+			  d.children.forEach(function(child){
+				child.parent = d;
+			  });      
+			  d._children = d.children; //_children is a temp variable to hold children when they are hidden
+			  d._children.forEach(collapse);
+			  d.children = null;
+			}
+		}
+		root.children.forEach(collapse);
+		set_Color(root, "black"); //set initial colors for the nodes to be black
+		update(root);
+	})
+
+	//function for set color recursively
+	function set_Color(d, color) {
+		d.color = color;
+		if (d.children) {
+			d.children.forEach(function(d){set_Color(d,color)});
+		} else if (d._children){
+			d._children.forEach(function(d){set_Color(d,color)});
+		}
+	}
+
+	function update(source){
+		// Assigns the x and y position for the nodes
+		var treeData = treemap(root);
+
+		// Compute the new tree layout.
+		var nodes = treeData.descendants();
+		var links = treeData.descendants().slice(1);
+		
+		// normalize for fixed-depth
+		nodes.forEach(function(d) {d.y = d.depth * 180; });
+		
+		// ****************** Nodes section ***************************
+		// Update the nodes…
+		var node = svg.selectAll("g.node")
+					  .data(nodes, function(d) { return d.id || (d.id = ++i); });
+		
+		// Enter any new nodes at the parent's previous position.
+		var nodeEnter = node.enter().append("g")
+						 	.attr("class", "node")
+						 	.attr("transform", function(d) { return "translate(" + source.y0 + "," + source.x0 + ")"; });
+		
+		// add circle to nodes
+		nodeEnter.append("circle")
+			  .attr("r", 1e-6)
+			  .on("click", click)
+			  .style("fill", function(d) { return d._children ? "lightsteelblue" : "#fff"; })
+			  .on("mouseover", handleMouseOver)
+			  .on("mouseout", handleMouseOut);
+
+		// Add labels for the nodes
+		nodeEnter.append('text')
+				  .attr("dy", ".35em")
+				  .attr("x", function(d) {
+				      return d.children || d._children ? -13 : 13;
+				  })
+				  .attr("text-anchor", function(d) {
+				      return d.children || d._children ? "end" : "start";
+				  })
+				  .text(function(d) { return d.data.data.Name; })
+				  .attr("font-size", function(d){ var textsize = [10, 16, 18]; return textsize[d.height]; })
+				  .on("mouseover", handleMouseOver)
+			      .on("mouseout", handleMouseOut);
+		
+		// Color text
+		d3.select("#tree").selectAll("text").style("fill", function(d){ return d.color;})
+
+		// Transition nodes to their new position.
+		var nodeUpdate = nodeEnter.merge(node);
+
+		nodeUpdate.transition()
+			  .duration(duration)
+			  .attr("transform", function(d) { return "translate(" + d.y + "," + d.x + ")"; });
+		
+		// Update the node attributes and style
+		nodeUpdate
+			  .select("circle")
+			  .attr("r", 4.5)
+			  .style("fill", function(d) { return d._children ? "lightsteelblue" : "#fff"; });
+
+		nodeUpdate.select("text")
+			  .style("fill-opacity", 1);
+		
+		// Transition exiting nodes to the parent's new position.
+		var nodeExit = node.exit().transition()
+			  .duration(duration)
+			  .attr("transform", function(d) { return "translate(" + source.y + "," + source.x + ")"; })
+			  .remove();
+
+		nodeExit.select("circle")
+			  .attr("r", 1e-6);
+		nodeExit.select("text")
+			  .style("fill-opacity", 1e-6);
+
+		// ****************** links section ***************************
+		// Update the links…
+		var link = svg.selectAll("path.link")
+			  .data(links, function(d) { return d.id; });
+
+		// Enter any new links at the parent's previous position.
+		var linkEnter = link.enter().insert("path", "g")
+			  .attr("class", "link")
+			  .attr("d", function(d) {
+				var o = {x: source.x0, y: source.y0};
+				return diagonal(o,o);
+			  });
+
+		// UPDATE
+  		var linkUpdate = linkEnter.merge(link);
+
+  		// Transition back to the parent element position
+		linkUpdate.transition()
+		      .duration(duration)
+		      .attr('d', function(d){ return diagonal(d, d.parent) });
+
+		// Remove any exiting links
+		var linkExit = link.exit().transition()
+		      .duration(duration)
+		      .attr('d', function(d) {
+		        var o = {x: source.x, y: source.y}
+		        return diagonal(o, o)
+		      })
+		      .remove();
+
+		// Store the old positions for transition.
+		nodes.forEach(function(d){
+		    d.x0 = d.x;
+		    d.y0 = d.y;
+		});		  
+	}
+
+	// Creates a curved (diagonal) path from parent to the child nodes
+	function diagonal(s, d) {
+	    path = `M ${s.y} ${s.x}
+	            C ${(s.y + d.y) / 2} ${s.x},
+	              ${(s.y + d.y) / 2} ${d.x},
+	              ${d.y} ${d.x}`
+
+	    return path
+	}
+
+	// Toggle children on click.
+	function click(d) {
+	    if (d.children) {
+	        d._children = d.children;
+	        d.children = null;
+	      } else {
+	        d.children = d._children;
+	        d._children = null;
+	      }
+	    update(d);
+	}
+
+	function handleMouseOver(d) {
+		tip.show(d);
+	    set_Color(root, "black")
+	    d1 = d;
+	    while(d1){
+		  d1.color = "blue";
+		  d1 = d1.parent;
+	    }
+	    set_Color(d, "blue")
+	    update(root);
+	}
+
+	function handleMouseOut(d) {
+		tip.hide(d);
+		set_Color(root, "black");//set all the nodes to be black.
+		d1 = d;
+		while(d1){
+			d1.color = "black";
+			d1 = d1.parent;
+		}
+		set_Color(d, "black")
+		update(root);
+	}
+
+
+	// FUNCTION TO DRAW DIRECTED GRAPH MAP
+    function draw_directedgraph(selection){
+    	var w = 1000;
+	    var h = 600;
+
+	    var svg = d3.select("#directedgraph")
+					.append("svg")
+					.attr("width", w)
+					.attr("height", h);
+
+	  	// create simulation
+		var simulation = d3.forceSimulation()
+						    .force("link", d3.forceLink().id(function(d) { return d.id; }).distance(300).strength(0.25))
+						    .force("charge", d3.forceManyBody())
+						    .force("center", d3.forceCenter(w / 2, h / 2));
+
+		// tooltip
+		var tip = d3.tip()
+		            .attr('class', 'd3-tip')
+		            .offset([-10, 0])
+		            .html(function(d) {
+		              return "Name: </strong><span class='details'>" + d.id + "<br></span>"
+		              		+ "Nationality: </strong><span class='details'>" + d.Country + "<br></span>"
+		                    + "Wins: </strong><span class='details'>" + d.Wins +"<br></span>"
+		                    + "Played: </strong><span class='details'>" + d.Played +"<br></span>"
+		                    + "Win Perc: </strong><span class='details'>" + ((d.Wins/d.Played) * 100).toFixed(2) + "%" +"<br></span>";
+		            });
+
+		// calls tooltip
+		svg.call(tip);
+			
+		var link;
+		var node;
+		var circles;
+
+		d3.json("graph.json", function(data){
+			// scale based on number of degrees
+			var radScale = d3.scaleLinear()
+							 .domain([d3.min(data[selection - 1].nodes, function(d){ return d.Wins; }),
+							 		  d3.max(data[selection - 1].nodes, function(d){ return d.Wins; })])
+							 .range([5,25]);
+
+			// builds arrows dynamically with variable radius
+			svg.append("svg:defs").selectAll("marker")
+			    .data(data[selection - 1].nodes)      // Different link/path types can be defined here
+			  .enter().append("svg:marker")    // This section adds in the arrows
+			    .attr("id", function(d, i) { return "arrow-" + i; })
+			    .attr("viewBox", "0 -5 10 10")
+			    .attr("refX", function(d){ return radScale(d.Wins)*2.5;})
+			    .attr("refY", -1.5) //-1.5
+			    .attr("markerWidth", 10)
+			    .attr("markerHeight", 10)
+			    .attr("orient", "auto")
+			  .append("svg:path")
+			    .attr("d", "M0,-5L10,0L0,5");
+
+			// link using paths not line (to get curves)
+	    	link = svg.append("g")
+				      .attr("class", "graphlinks")
+				      .selectAll("path")
+				      .data(data[selection - 1].links)
+				      .enter().append("path")
+				      .attr("stroke-width", 0.5)
+				      .attr("stroke", function(d) {
+				      	 	if (parseFloat(d.value) == 0) {
+				      	 		return 'white';
+				      	 	} else if (parseFloat(d.value) == 1) {
+				      	 		return '#9898F9';
+				      	 	} else {
+				      	 		return '#0100FF';
+				      	 	}
+				      })
+					  .attr("marker-end", function(d){
+					  	  var wins;
+						  for (var i = 0; i < data[selection - 1].nodes.length; i++){
+						      if (data[selection - 1].nodes[i].id == d.target){
+						      	 wins = i;
+						      	 break;
+						      }
+						  }
+						  return "url(#arrow-" + wins + ")";
+					  })
+
+			// build nodes
+			node = svg.append("g")
+			              .selectAll("g.nodes")
+			              .data(data[selection - 1].nodes)
+			              .enter()
+			              .append("g")
+
+
+
+			//create circles    
+			circles = node.append("circle")
+							  .attr("r", function(d){ return radScale(d.Wins);  })
+							  .attr("fill", "#ccc")
+							  .attr("class", "graphnodes")
+						      .call(d3.drag()
+						          .on("start", dragstarted)
+						          .on("drag", dragged)
+						          .on("end", dragended))
+						      .on("mouseover", function(d) { tip.show(d); })
+						      .on("mouseout", function(d){ tip.hide(d); })
+						      .on("dblclick", connectedNodes);
+
+			// labels the nodes
+		    var lables = node.append("text")
+		      				 .text(function(d) {
+						        return d.id;
+						      })
+						      .attr('x', function(d){ return radScale(d.Wins);})
+						      .attr('y', function(d){ return radScale(d.Wins);})
+						      .attr("class", "graphnodetext")
+						      .on("dblclick", connectedNodes);
+
+			// do simulation
+			simulation
+			      .nodes(data[selection - 1].nodes)
+			      .on("tick", ticked);
+
+			simulation.force("link")
+			      .links(data[selection - 1].links);
+
+
+			//////////////////////////////////
+			//  functions to highlight nodes
+			/////////////////////////////////
+			var toggle = 0;
+			var data = data[selection - 1];
+			//Create an array logging what is connected to what
+			var linkedByIndex = {};
+			for (i = 0; i < data.nodes.length; i++) {
+			    linkedByIndex[i + "," + i] = 1;
+			};
+			data.links.forEach(function (d) {
+			    linkedByIndex[d.source.index + "," + d.target.index] = 1;
+			});
+			//This function looks up whether a pair are neighbours
+			function neighboring(a, b) {
+			    return linkedByIndex[a.index + "," + b.index];
+			}
+			function connectedNodes() {
+			    if (toggle == 0) {
+			        //Reduce the opacity of all but the neighbouring nodes
+			        d = d3.select(this).node().__data__;
+			        node.style("opacity", function (o) {
+			            return neighboring(d, o) | neighboring(o, d) ? 1 : 0.1;
+			        });
+			        link.style("opacity", function (o) {
+			            return d.index==o.source.index | d.index==o.target.index ? 1 : 0.1;
+			        });
+			        //Reduce the op
+			        toggle = 1;
+			    } else {
+			        //Put them back to opacity=1
+			        node.style("opacity", 1);
+			        link.style("opacity", 1);
+			        toggle = 0;
+			    }
+			}
+
+
+		})
+
+		// function to create links and nodes
+		function ticked() {
+		    link.attr("d", function(d){
+		    	var dx = d.target.x - d.source.x,
+	            dy = d.target.y - d.source.y,
+	            dr = Math.sqrt(dx * dx + dy * dy);
+		        return "M" +
+		            d.source.x + "," +
+		            d.source.y + "A" +
+		            dr + "," + dr + " 0 0,1 " +
+		            d.target.x + "," +
+		            d.target.y;
+		        });
+
+		    node
+		        .attr("transform", function(d) {
+		          return "translate(" + d.x + "," + d.y + ")";
+		        });
+		}
+
+		// draggable functions
+		function dragstarted(d) {
+		  if (!d3.event.active) simulation.alphaTarget(0.3).restart();
+		  d.fx = d.x;
+		  d.fy = d.y;
+		}
+
+		function dragged(d) {
+		  d.fx = d3.event.x;
+		  d.fy = d3.event.y;
+		}
+
+		function dragended(d) {
+		  if (!d3.event.active) simulation.alphaTarget(0);
+		  d.fx = null;
+		  d.fy = null;	  
+		}
+
+    }
+
+
+   	// FUNCTION TO DRAW CHLROLOPLETH MAP
+    function draw_map(selection){
+    	// map source: https://raw.githubusercontent.com/jdamiani27/Data-Visualization-and-D3/master/lesson4/world_countries.json
+
+    	var mapping = ['MS', 'WS', 'MD', 'WD', 'XD'];
+
+	    //Width and height
+		var padding = {top: 0, right: 200, bottom: 0, left: 200};
+
+	    var w = 1000;
+	    var h = 600;
+
+		//Define map projection
+		var projection = d3.geoMercator()
+							   .translate([w/2, h/1.5])
+							   .scale(150);
+
+		//Define path generator
+		var path = d3.geoPath()
+						 .projection(projection);
+
+
+		//Create SVG element
+		var svg = d3.select("#playercountmap")
+					.append("svg")
+					.attr("width", w)
+					.attr("height", h);
+
+		// tooltip
+		var tip = d3.tip()
+	            .attr('class', 'd3-tip')
+	            .offset([-10, 0])
+	            .html(function(d) {
+	            	var player_count = 0;
+	            	var num_trophies = 0;
+	            	if ("playercount" in d.properties){
+	            		player_count = d.properties.playercount;
+	            	}
+
+	            	if ("continental" in d.properties){
+	            		num_trophies = d.properties.continental + d.properties.ISIC + d.properties.Super100 + d.properties.Super300 + 
+				   					   d.properties.Super500 + d.properties.Super750 + d.properties.WTFSuper1000;
+	            	}
+
+		            return "<strong>Country: </strong><span class='details'>" + d.properties.name + "<br></span>" 
+		              + "<strong>Player Count: </strong><span class='details'>" + player_count +"<br></span>"
+		              + "<strong>Num Trophies: </strong><span class='details'>" + num_trophies +"<br></span>";
+		          });
+
+
+    	svg.call(tip);
+
+		// color scale
+		var colorScale = d3.scaleThreshold()
+						   .domain([0,10,20,30,40,50,60,70,80])
+	    				   .range(["#ffffd9","#edf8b1","#c7e9b4","#7fcdbb","#41b6c4","#1d91c0","#225ea8","#253494","#081d58"]);
+
+		// load in data simultaneously
+		d3.queue()
+		  .defer(d3.json, "world_countries.json")
+		  .defer(d3.csv, "player_count.csv")
+		  .defer(d3.csv, "country_win.csv")
+		  .await(function(error, f1, f2, f3) {
+	  			//Merge the other data and GeoJSON
+				//Loop through once for each GeoJSON value
+				for (var i = 0; i < f1.features.length; i++) {
+					//Grab country name
+					var country = f1.features[i].id;
+
+					// look through in file 2
+					for (var j = 0; j < f2.length; j++){
+						if ((f2[j].discipline == mapping[selection - 1]) && (f2[j].index == country)){
+							f1.features[i].properties.playercount = parseFloat(f2[j].player_count);
+							break;
+						}
+					}
+
+					// look through in file 3
+					for (var k = 0; k < f3.length; k++){
+						if ((f3[k].discipline == mapping[selection - 1] && f3[k].index == country)){
+							f1.features[i].properties.continental = parseFloat(f3[k].Continental);
+							f1.features[i].properties.ISIC = parseFloat(f3[k].ISIC);
+							f1.features[i].properties.Super100 = parseFloat(f3[k].Super100);
+							f1.features[i].properties.Super300 = parseFloat(f3[k].Super300);
+							f1.features[i].properties.Super500 = parseFloat(f3[k].Super500);
+							f1.features[i].properties.Super750 = parseFloat(f3[k].Super750);
+							f1.features[i].properties.WTFSuper1000 = parseFloat(f3[k].WTFSuper1000);
+						}
+					}
+				}
+
+				//Bind data and create one path per GeoJSON feature
+				svg.append("g")
+				   .selectAll("path")
+				   .data(f1.features)
+				   .enter()
+				   .append("path")
+				   .attr("d", path)
+				   .style("fill", function(d) {
+				   		// color by player_count wins
+				   		if (("playercount" in d.properties) && (d.properties.playercount > 0)){
+				   			return colorScale(d.properties.playercount);
+				   		}  else {
+				   			return "black"; //no winners from that country
+				   		}
+
+				   		// if ("continental" in d.properties){
+				   		// 	var sumwins = d.properties.continental + d.properties.ISIC + d.properties.Super100 + d.properties.Super300 + 
+				   		// 			      d.properties.Super500 + d.properties.Super750 + d.properties.WTFSuper1000;
+				   		// 	if (sumwins != 0){
+				   		// 		return colorScale(sumwins);
+				   		// 	}  else {
+				   		// 		return "black";
+				   		// 	}
+				   })
+				   .on('mouseover',function(d){ tip.show(d); })
+			       .on('mouseout', function(d){ tip.hide(d); })
+			       .on('dblclick', function(d){ display_awards(d); });
+
+
+
+			function display_awards(d){
+				// removes svg
+				d3.select("#awards")
+				  .select("svg")
+				  .remove();
+
+				var sumwins = d.properties.continental + d.properties.ISIC + d.properties.Super100 + d.properties.Super300 + 
+				   					      d.properties.Super500 + d.properties.Super750 + d.properties.WTFSuper1000;
+
+				var awards_data = [d.properties.continental,d.properties.ISIC, d.properties.Super100, d.properties.Super300,
+				   					      d.properties.Super500, d.properties.Super750, d.properties.WTFSuper1000];
+				var awards_labels = ['Continental', 'ISIC', 'Super100', 'Super300', 'Super500', 'Super750', 'WCWTFSuper1000'];
+
+				var w = 1000;
+				var h = 400;
+				var padding = 50;
+
+				var svg = d3.select("#awards")
+				            .append("svg")
+				            .attr("width", w)
+				            .attr("height", h);
+
+				// crete x and y scale
+				var yScale = d3.scaleLinear()
+					 .domain([0, 5])
+					 .range([h - padding, padding]);
+
+				var xScale = d3.scaleBand()
+								  .domain(['Continental', 'ISIC', 'Super100', 'Super300', 'Super500', 'Super750', 'WCWTFSuper1000'])
+								  .range([padding, w - padding])
+								  .paddingInner(0.1);
+
+				//Define X and Y axis
+				var yAxis = d3.axisLeft()
+								  .scale(yScale)
+								  .ticks(5);
+
+				var xAxis = d3.axisBottom()
+							  .scale(xScale);
+				
+
+				// create multiple rectangle
+				svg.selectAll("rect")
+				   .data(awards_data)
+				   .enter()
+				   .append("rect")
+				   .attr("x", function(d,i){ return xScale(awards_labels[i]); })
+				   .attr("y", function(d){ return yScale(d); })
+				   .attr("width", xScale.bandwidth())
+				   .attr("height", function(d){ return h - yScale(d) - padding; })
+				   .attr("fill", function(d) {
+							return "rgb(0, 0, " + Math.round(d * 100) + ")";
+					});
+
+				// add labels to rectangles
+				svg.selectAll("text")
+				   .data(awards_data)
+				   .enter()
+				   .append("text")
+				   .text(function(d) { return d; })
+				   .attr("text-anchor", "middle")
+				   .attr("x", function(d,i){ return xScale(awards_labels[i]) + (xScale.bandwidth()/2); })
+				   .attr("y", function(d){ return yScale(d) + 20; })
+				   .attr("fill", "white");
+
+
+				//Create X axis
+				svg.append("g")
+					.attr("class", "axis")
+					.attr("transform", "translate(0," + (h - padding) + ")")
+					.call(xAxis);
+
+				//Create Y axis
+				svg.append("g")
+					.attr("class", "axis")
+					.attr("transform", "translate(" + padding + ",0)")
+					.call(yAxis);
+
+				// axis labels
+				svg.append("text")
+				   .attr("x", (w - padding * 2)/2 )
+				   .attr("y", h - (padding/3))
+				   .text("Competitions")
+				   .attr("text-anchor", "middle")
+
+				svg.append("text")
+				   .attr("transform", "translate("+ padding/ 2 +"," + (h - padding)/2 +")" + "rotate(-90)")
+				   .text("# of Trophies Won")
+				   .attr("text-anchor", "middle");
+
+
+				var labels = ['Men Singles', 'Women Singles', 'Men Doubles', 'Women Doubles', 'Mixed Doubles']
+				svg.append("text")
+				   .attr("x", w/2)
+				   .attr("y", padding/2)
+				   .text("Number of Trophies Won in 2018 by " + d.properties.name + " " + labels[selection - 1])
+				   .attr("text-anchor", "middle")
+				   .attr("font-weight", "bold")
+				   .attr("font-size", 25);
+
+				}
+
+
+					//add legend
+					var playerdat = [0,10,20,30,40,50,60,70,80]
+					var colordat = ["#ffffd9","#edf8b1","#c7e9b4","#7fcdbb","#41b6c4","#1d91c0","#225ea8","#253494","#081d58"];
+					var cellSize = 50;
+
+					var legend = svg.append("g");
+			        
+
+			        legend.selectAll("rect")
+			        	  .data(playerdat)
+			        	  .enter()
+			        	  .append("rect")
+			        	  .attr("class", "legend")
+			      		  .attr("x", function(d, i) {  return w/2.6 + cellSize * i; })
+			      		  .attr("y", h - 80)
+					      .attr("width", cellSize)
+					      .attr("height", cellSize/4)
+					      .style("stroke",function (d,i){ if(i==10){return "white";} else{return "black";} })
+					      .style("fill", function(d, i) { if(i==10){return "white";} else{return colordat[i];} });
+			  
+				    legend.selectAll("text")
+			        	  .data(playerdat)
+			        	  .enter()
+					      .append("text")
+					      .text(function (d){ return d;})
+					      .attr("class", "mono")
+					      .attr("x", function(d, i) { return w/2.6 +cellSize * (i); })
+					      .attr("y", h-60)
+					      .call(colorScale);
+
+					legend.append("text")
+					      .text("Player Count")
+					      .attr("class", "mono")
+					      .attr("x", w/3 + cellSize * 5)
+					      .attr("y", h-90);
+				});	
+    }
+    
+	</script>
+</body>
+</html>
