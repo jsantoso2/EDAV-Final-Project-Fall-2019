@@ -200,7 +200,7 @@
 	// declares a tree layout and assigns the size
 	var treemap = d3.tree().size([h, w]);
 
-	d3.json("/data_js/tree.json", function(d){
+	d3.json("data_js/tree.json", function(d){
 		dataset = d;
 				
 		// Assigns parent, children, height, depth
@@ -426,7 +426,7 @@
 		var node;
 		var circles;
 
-		d3.json("/data_js/graph.json", function(data){
+		d3.json("data_js/graph.json", function(data){
 			// scale based on number of degrees
 			var radScale = d3.scaleLinear()
 							 .domain([d3.min(data[selection - 1].nodes, function(d){ return d.Wins; }),
@@ -655,9 +655,9 @@
 
 		// load in data simultaneously
 		d3.queue()
-		  .defer(d3.json, "/data_js/world_countries.json")
-		  .defer(d3.csv, "/data_js/player_count.csv")
-		  .defer(d3.csv, "/data_js/country_win.csv")
+		  .defer(d3.json, "data_js/world_countries.json")
+		  .defer(d3.csv, "data_js/player_count.csv")
+		  .defer(d3.csv, "data_js/country_win.csv")
 		  .await(function(error, f1, f2, f3) {
 	  			//Merge the other data and GeoJSON
 				//Loop through once for each GeoJSON value
