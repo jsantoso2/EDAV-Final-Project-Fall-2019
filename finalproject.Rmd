@@ -1,0 +1,1319 @@
+---
+title: "Analysis of Professional Badminton Matches in 2018"
+author: Jonathan Santoso (jis2152), Kevin Christian Wibisono (kw2870)
+output: html_document
+---
+
+<style>
+body {
+text-align: justify}
+</style>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 1. Introduction
+Badminton is a racquet sport whereby players take turn in hitting a shuttlecock across a net. There are 5 (five) disciplines in badminton, namely Men's Singles (MS), Women's Singles (WS), Men's Doubles (MD), Women's Doubles (WD) and Mixed Doubles (XD). The scoring system for all these disciplines is the same; each set begins with a score of 0-0, and the player who wins each rally gets an additional 1 (one) point. The first player who reaches 21 points wins this set. In the case where the score is 20-20, a two-point gap is needed for a player to win the set. The only exception is that when the score is 29-29, the player who obtains the next point wins the set. After completing a set, the players take a brief rest before continuing to the next set. The first player to win 2 (two) sets wins the match (this means a badminton match consists of either 2 (two) or 3 (three) sets). In a match where one player feels unfit to continue (e.g. due to an injury), she can opt to retire and her opponent wins the match.
+
+The Badminton World Federation (BWF) is the internationally recognized governing body of this sport with the main responsibility of organizing badminton tournaments each year (also known as season). There were 125 non-continental individual tournaments organized in the 2018 season, consisting of the following (in descending order of prestigiousness): BWF World Championships (1 tournament), BWF World Tour Finals (1 tournament), BWF World Tour Super 1000 (3 tournaments), BWF World Tour Super 750 (5 tournaments), BWF World Tour Super 500 (7 tournaments), BWF World Tour Super 300 (11 tournaments), BWF World Tour Super 100 (11 tournaments), BWF International Challenge (22 tournaments), BWF International Series (37 tournaments) and BWF Future Series (27 tournaments). In addition, there are 10 tournaments categorized as Continental Championships where only players from the respective continents are eligible to participate. 
+
+The BWF implements a ranking system called the BWF World Ranking which is used to determine the qualification for entry as well as seeding for BWF tournaments. Players are ranked based on the total points obtained from the tournaments participated in the past 52 weeks. The points a player gets for each tournament depends on 2 (two) aspects, namely the prestigiousness of the tournament and the final result of that player in that particular tournament. The BWF World Ranking is updated weekly.
+
+The statistic for each match is available online via bwf.tournamentsoftware.com. We realize that the data available on this website are very rich, yet no one (as far as we know) has properly analyzed and summarized them into meaningful and interesting insights. For example, Chou Tien Chen (an MS player from Chinese Taipei) has been regarded by some commentators as a three-set specialist, i.e. someone who wins a lot of his matches in 3 (three) sets. It would be a good idea to check the validity of this statement. One way of doing so is to consider all MS players and compute the percentage of matches won in 3 (three) sets over all matches won. Not only does this allow us to verify these commentators' claim, but this also gives us information about the players who tend to win their matches in 3 (three) sets, an insight we have never seen before. Another example is Kento Momota, the World Number 1 MS player from Japan. Badminton lovers should know how he likes to suddenly increase the pace of his game, often resulting in a series of consecutive points. We may be interested in knowing whether he is indeed the player with the most number of consecutive points on average. Another more general topic which is equally interesting is about the duration of the matches. While we may be sure that WD matches are usually longer than MD matches, we may not be certain whether MS matches are longer than WS matches. Using the data we collected, we should be able to perform such analyses.
+
+In summary, the topics we are interested in studying are:
+
+1. Analysis of matches
+  a. Set duration
+  b. Match outcome
+  c. Tournament outcome
+  d. Percentage of two-set matches
+
+2. Analysis of players
+ a. Percentage of matches won
+ b. Percentage of two-set wins
+ c. Match duration per set
+ d. Consecutive points
+ e. Comeback executors and victims
+ f. Underdog (unseeded) player wins
+ g. Head-to-head records
+ 
+## 2. Data Sources
+The data are obtained by scraping the bwf.tournamentsoftware.com website using Beautiful Soup. The Python code we wrote to generate the .csv file can be found in the Github repository. The data set contains 16,293 observations and 27 variables which can be summarized as follows:
+
+1. **Player.1.Link** 
+  a. Format: a character in the form of a Python list with two elements for double matches, or a character for single matches.
+  b. Descripton: the BWF player link associated with the first player. As some players may use different names in different tournaments, using the player link when conducting analyses leads to a more accurate result since each player can only have one link.
+2. **Player.1.Name**
+  a. Format: a character in the form of a Python list with two elements for double matches, or a character for single matches.
+  b. Description: the name of the first player.
+3. **Player.2.Link** 
+  a. Format: a character in the form of a Python list with two elements for double matches, or a character for single matches.
+  b. Descripton: the BWF player link associated with the second player. As some players may use different names in different tournaments, using the player link when conducting analyses leads to a more accurate result since each player can only have one link.
+4. **Player.2.Name**
+  a. Format: a character in the form of a Python list with two elements for double matches, or a character for single matches.
+  b. Description: the name of the second player.
+5. **Tournament.Link**
+  a. Format: a character
+  b. Description: the link of the tournament  
+6. **Tournament.Name**
+  a. Format: a character
+  b. Description: the name of the tournament
+7. **Tournament.Type**
+  a. Format: a character
+  b. Description: the type of the tournament
+8. **Tournament.City**
+  a. Format: a character
+  b. Description: the city where the tournament is organized
+9. **Tournament.Country**
+  a. Format: a character
+  b. Description: the country where the tournament is organized
+10. **Tournament.Start.Date**
+  a. Format: a character
+  b. Description: the start date of the tournament
+11. **Tournament.End.Date**
+  a. Format: a character
+  b. Description: the end date of the tournament
+12. **Match.Link**
+  a. Format: a character
+  b. Description: the link of the match
+13. **Discipline_orig**
+  a. Format: a character
+  b. Description: the discipline of the match as mentioned in the match link
+14. **Discipline**
+  a. Format: a character
+  b. Description: a cleaner version of **Discipline_orig**
+15. **Duration**
+  a. Format: an integer
+  b. Description: the duration of the match (in minutes)
+16. **Player.1.Country**
+  a. Format: a character in the form of a Python list with two elements for double matches, or a character for single matches.
+  b. Descripton: the country of the first player
+17. **Player.2.Country**
+  a. Format: a character in the form of a Python list with two elements for double matches, or a character for single matches.
+  b. Descripton: the country of the second player 
+18. **Player.1.Sequence**
+  a. Format: a character in the form of a Python list with two or three elements (depending on the number of sets)
+  b. Description: the score sequence of the first player for each set of the match
+19. **Player.2.Sequence**
+  a. Format: a character in the form of a Python list with two or three elements (depending on the number of sets)
+  b. Description: the score sequence of the second player for each set of the match
+20. **Match.Score**
+  a. Format: a character in the form of a Python list with two or three elements (depending on the number of sets)
+  b. Description: the score of the match 
+21. **Match.Statistic**
+  a. Format: a character in the form of a Python list with four elements
+  b. Description: most consecutive points, game points, total points played and total points won for the whole match
+22. **Game.Statistic**
+  a. Format: a character in the form of a Python list with two or three elements (depending on the number of sets)
+  b. Description: most consecutive points, game points, total points played and total points won for each set
+23. **Retired**
+  a. Format: a logical variable
+  b. Description: whether one of the players chose to retire
+24. **Winner**
+  a. Format: an integer
+  b. Description: the player which wins the match
+25. **Player.1.Seed**
+  a. Format: a character
+  b. Description: the seed of the first player (an empty character if unseeded)
+26. **Player.2.Seed**
+  a. Format: a character
+  b. Description: the seed of the second player (an empty character if unseeded)
+27. **Match.Date**
+  a. Format: a character
+  b. Description: the date of the match  
+  
+The following considerations and assumptions are noted:
+
+1. We exclude matches without score sequence, match statistics or game statistics. We observe that such matches are usually part of smaller tournaments participated by low-ranked (semi-professional) players. Hence, this exclusion will not affect the goal of our analyses.
+
+2. We exclude junior and senior tournaments. This is because these tournaments are not part of the BWF season.
+
+3. Some pairs in MD, WD and XD consist of players from different countries. In calculating statistics which are aggregated by country, we follow the general convention of assigning the value 0.5 for each country represented.
+
+4. As we focus our analysis on professional badminton matches, we decide to categorize the tournaments into 7 (seven) new categories, namely (1) Grade 1 Individual Tournaments, HSBC BWF World Tour Finals and HSBC BWF World Tour Super 1000; (2) HSBC BWF World Tour Super 750; (3) HSBC BWF World Tour Super 500; (4) HSBC BWF World Tour Super 300; (5) BWF Tour Super 100; (6) Continental Individual Championships; (7) International Series and International Challenge. We exclude tournaments of other categories as they are typically participated by low-ranked (semi-professional) players.
+
+5. Some planned matches are not played when one of the players decides to withdraw from the match. We exclude such matches from our analysis.
+
+## 3. Data Transformation
+We perform several steps of data transformation and subsetting that are essential to help make our analysis easier and more accurate.
+
+Loading the libraries
+```{r}
+library(plyr)
+library(tidyverse)
+library(ggplot2)
+library(extracat)
+library(lubridate)
+library(stringr)
+library(gsubfn)
+library(parcoords)
+```
+
+
+Loading the data
+```{r}
+data <- read.csv('data_2018.csv', stringsAsFactors=FALSE, encoding = "UTF-8")
+```
+
+1. Convert string of dates into a date format
+```{r}
+data <- data %>%
+  mutate(Tournament.Start.Date = as.Date(Tournament.Start.Date, format='%m/%d/%Y'))
+data <- data %>%
+  mutate(Tournament.End.Date = as.Date(Tournament.End.Date, format='%m/%d/%Y')) 
+data <- data %>%
+  mutate(Match.Date = as.Date(Match.Date, format='%m/%d/%Y'))
+```
+ 
+2. Convert non-standard seed (e.g. '16-Sep', which should be 9/16) by taking the rounded mean of the two numbers (e.g. 9/16 becomes 13); convert every seed into integer
+```{r}
+data$Player.1.Seed <- mapvalues(data$Player.1.Seed, 
+          from = c('16-Sep', '8-May', '4-Mar'), 
+          to = c(13, 7, 4))
+data <- data %>% mutate(Player.1.Seed = as.integer(Player.1.Seed))
+
+data$Player.2.Seed <- mapvalues(data$Player.2.Seed, 
+          from = c('16-Sep', '8-May', '4-Mar'), 
+          to = c(13, 7, 4))
+data <- data %>% mutate(Player.2.Seed = as.integer(Player.2.Seed))
+```
+
+3. Exclude junior and senior tournaments
+```{r}
+data <- data %>%
+  filter(Discipline %in% c('MD', 'WD', 'XD', 'MS', 'WS')) 
+```
+
+4. Only tournaments of the aforementioned categories are considered
+```{r}
+data <- data %>%
+  filter(Tournament.Type %in% c('Grade 1 Individual Tournaments',
+                                'HSBC BWF World Tour Finals',
+                                'HSBC BWF World Tour Super 1000',
+                                'HSBC BWF World Tour Super 750',
+                                'HSBC BWF World Tour Super 500',
+                                'HSBC BWF World Tour Super 300',
+                                'BWF Tour Super 100',
+                                'Continental Individual Championships',
+                                'International Series',
+                                'International Challenge')) 
+
+data$Tournament.Type <- mapvalues(data$Tournament.Type, 
+          from = c('Grade 1 Individual Tournaments',
+                  'HSBC BWF World Tour Finals',
+                  'HSBC BWF World Tour Super 1000',
+                  'HSBC BWF World Tour Super 750',
+                  'HSBC BWF World Tour Super 500',
+                  'HSBC BWF World Tour Super 300',
+                  'BWF Tour Super 100',
+                  'Continental Individual Championships',
+                  'International Series',
+                  'International Challenge'), 
+          to = c('WC + WTF + Super 1000', 
+                 'WC + WTF + Super 1000', 
+                 'WC + WTF + Super 1000',
+                 'Super 750',
+                 'Super 500',
+                 'Super 300',
+                 'Super 100',
+                 'Continental',
+                 'IS + IC',
+                 'IS + IC')) 
+```
+
+## 4. Missing Values
+```{r}
+colSums(is.na(data))
+```
+
+```{r}
+visna(data)
+```
+
+By looking at these summaries, we observe that the columns missing values are **Duration**, **Player.1.Seed** and **Player.2.Seed**. The columns **Player.1.Seed** and **Player.2.Seed** have a lot of empty values not because they are missing, but because there are a lot of unseeded players. Let us look at the tournament names and types corresponding to the matches with missing **Duration**
+
+```{r}
+data %>%
+  filter(is.na(Duration)) %>%
+  select(Tournament.Name, Tournament.Type)
+```
+
+We can see that out of the 4 (four) matches with missing **Duration**, 3 (three) of them are matches from the Turkey International 2018, and the rest is from YONEX Estonian International 2018. Both tournaments belong to the least prestigious International Series and International Challenges category.
+
+We decide to still include these matches as the other columns are not missing. We will just remove these matches when doing analyses about match duration. Also, since the number of matches with missing values are negligible as compared to the total number of matches, any way of handling the missing values will not result in a significant difference in our overall insights.
+
+## 5. Results
+
+### 5a. Summary Statistics
+
+We will first provide some basic statistics about the data.
+
+1. Number of matches by discipline
+```{r}
+summary1 <- data %>%
+  group_by(Discipline) %>%
+  summarize(count = n())
+
+ggplot(summary1, aes(fct_reorder(Discipline, -count), count)) +
+  geom_bar(stat = 'identity', fill = '#730099') +
+  ggtitle('Number of Matches by Discipline') +
+  xlab('Discipline') +
+  ylab('Number of matches') +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+From this plot, we can see that matches for every single discipline happened more often than matches for every double discipline.
+
+2. Number of unique players by discipline
+```{r}
+players1 <- data %>%
+  select(Player.1.Name, Discipline)
+colnames(players1) <- c('Player.Name', 'Discipline')
+players2 <- data %>%
+  select(Player.2.Name, Discipline)
+colnames(players2) <- c('Player.Name', 'Discipline')
+
+players <- rbind(players1, players2)
+
+summary2 <- players %>%
+  group_by(Discipline) %>%
+  summarize(count = n_distinct(Player.Name))
+
+ggplot(summary2, aes(fct_reorder(Discipline, -count), count)) +
+  geom_bar(stat = 'identity', fill = '#4D4DFF') +
+  ggtitle('Number of Unique Players by Discipline') +
+  xlab('Discipline') +
+  ylab('Number of unique players') +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+From this plot, we can see that the discipline with the most number of unique players is MS, and the discipline with the least number of unique players is WS. The ordering of discipline in this plot is different from the ordering in the previous plot, i.e. number of matches is not correlated with number of unique players. 
+
+3. Number of tournaments by categories
+```{r}
+summary3 <- data %>%
+  group_by(Tournament.Type) %>%
+  summarize(count = n_distinct(Tournament.Name))
+
+ggplot(summary3, aes(Tournament.Type, count)) +
+  geom_bar(stat = 'identity', fill = '#1AFF1A') +
+  ggtitle('Number of Tournaments by Discipline') +
+  xlab('Tournament Type') +
+  ylab('Number of tournaments') +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  theme(axis.text.x = element_text(angle = 20, hjust = 1))
+```
+
+Note that the number of IS + IC tournaments as reflected on the bar chart is less than the actual number as there are a lot of IS + IC tournaments with no complete match data. 
+
+From this plot, we can see more prestigious tournaments happened less often as compared to less prestigious tournaments. 
+
+4. Number of tournaments throughout 2018
+```{r}
+ntr <- data %>%
+  mutate(week_number = week(Tournament.End.Date)) %>%
+  group_by(week_number) %>%
+  summarize(count = n_distinct(Tournament.Name))
+
+all_week <- data.frame(matrix(ncol = 1, nrow = 52))
+colnames(all_week) <- c('week_number')
+all_week$week_number <- seq(1,52)
+
+ntr <- merge(x = all_week, y = ntr, by = 'week_number', all.x = TRUE) %>%
+  mutate(count = ifelse(is.na(count), 0, count)) %>%
+  mutate(date = ymd('2018-01-01') + weeks(week_number - 1))  
+
+ggplot(ntr, aes(date, count)) + 
+  geom_line(color = 'blue') +  
+  ggtitle('Number of Tournaments per Week in 2018') +
+  xlab('Week') +
+  ylab('Tournament count') +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+From this plot, we can see that there are some weeks in May 2018 where no tournament was organized. Also, there were more tournaments in Q4 2018 as compared to Q1, Q2 and Q3.
+
+5. Density plot of matches duration per discipline
+```{r}
+ggplot(data) +
+  geom_density(mapping = aes(x = Duration, fill = Discipline), alpha = 
+                 0.5) +
+  ggtitle('Density Plot of Match Duration per Discipline') +
+  xlab('Duration') +
+  ylab('Density') +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+From this plot, we can see that the densities across discipline are right-skewed and quite similar in shape. Also, the densities for WD and WS are more heavy-tailed. 
+
+6. Percentage of retired matches per discipline
+```{r}
+summary4 <- data %>%
+  group_by(Discipline) %>%
+  summarize(count = n(), retired = sum(Retired)) %>%
+  mutate(pct_retired = 100 * retired/count)
+
+ggplot(summary4, aes(fct_reorder(Discipline, -pct_retired), pct_retired)) +
+  geom_bar(stat = 'identity', fill = '#4D4DFF') +
+  ggtitle('Percentage of Retired Matches per Discipline') +
+  xlab('Discipline') +
+  ylab('Percentage of retired matches') +
+  theme(plot.title = element_text(hjust = 0.5)) 
+```
+
+From this plot, we can see that retirements tend to happen in single matches as compared to double matches, which may seem counterintuitive since double matches consist of more players than single players. One possible explanation is that single matches tend to be longer and require more physicality.
+
+### 5b. Analysis of matches
+
+We will work with the following topics:
+  a. Set duration
+
+1. Set duration per discipline
+```{r}
+data2 <- data
+data2 <- data2 %>%
+  mutate(Number.Of.Set = (str_count(Match.Score, ',') + 1)/2,
+         Duration.Per.Set = Duration/Number.Of.Set) %>%
+  filter(Retired == FALSE & !is.na(Duration)) 
+  #consider only matches where Retired = FALSE with available Duration
+ 
+graph1 <- data2 %>% 
+  group_by(Discipline) %>% 
+  summarize(mean_duration = mean(Duration.Per.Set))
+
+ggplot(graph1, aes(fct_reorder(Discipline, -mean_duration), mean_duration)) +
+  geom_bar(stat = 'identity', fill = '#4D4DFF') +
+  ggtitle('Set Duration per Discipline') +
+  xlab('Discipline') +
+  ylab('Mean set duration') +
+  theme(plot.title = element_text(hjust = 0.5)) 
+```
+
+We can see that the average set durations for WD and MS are quite similar, and are larger than those for WS, MD and XD. 
+
+2. Set duration per discipline and tournament level.
+```{r}
+graph2 <- data2 %>% 
+  group_by(Discipline, Tournament.Type) %>% 
+  summarize(mean_duration = mean(Duration.Per.Set))
+
+#relevel
+graph2 <- graph2 %>% 
+  group_by(Tournament.Type) %>%
+  arrange(Tournament.Type, -mean_duration) %>%
+  unite('temp', Tournament.Type, Discipline, sep = '_', remove = FALSE) %>%
+  data.frame() %>%
+  mutate(temp = factor(temp, levels = temp))
+ 
+graph2 %>%
+  group_by(Tournament.Type) %>%
+  ggplot(aes(x = temp, y = mean_duration, fill = Discipline)) +
+  geom_bar(stat = 'identity') +
+  facet_wrap(~Tournament.Type, scales = 'free') +
+  scale_x_discrete(breaks = graph2$temp, labels = graph2$Discipline) +
+  ggtitle('Set Duration per Discipline and Tournament Level') +
+  xlab('Discipline') +
+  ylab('Mean set duration') +
+  theme(plot.title = element_text(hjust = 0.5)) 
+```
+
+This plot clearly shows that MS, WD and WS sets are on average the longest (in the same order) for each tournament type. XD sets are the shortest for each tournament type with the expection of Super 500 and WTF + Super 1000. However, in both cases, the average duration for XD and MD sets are approximately the same. We also observe that the higher the tournament level, the longer the average duration of sets.
+
+3. Set duration per discipline and country.
+```{r}
+data3_1 <- data2 %>% 
+  select(Player.1.Country, Discipline, Duration.Per.Set)
+colnames(data3_1) <- c('Player.Country', 'Discipline', 'Duration.Per.Set')
+data3_2 <- data2 %>% 
+  select(Player.2.Country, Discipline, Duration.Per.Set)
+colnames(data3_2) <- c('Player.Country', 'Discipline', 'Duration.Per.Set')
+data3 <- rbind(data3_1, data3_2)
+
+data4 <- data.frame(matrix(ncol = 4, nrow = 0))
+colnames(data4) <- c('Player.Country', 'Discipline', 'Duration.Per.Set', 'Weight')
+
+for(i in 1:nrow(data3)){
+  if(str_count(data3[i,1], "]") == 0){
+    data4[nrow(data4)+1, ] <- c(data3[i,], 1)
+  } else {
+    splitted <- strsplit(data3[i,1], "'")[[1]]
+    country1 <- splitted[2]
+    country2 <- splitted[4]
+    data4[nrow(data4)+1, ] <- 
+      c(country1, data3[i,2], data3[i,3], 0.5)
+    data4[nrow(data4)+1, ] <- 
+      c(country2, data3[i,2], data3[i,3], 0.5)
+  }
+}
+
+data4 <- data4 %>%
+  mutate(Duration.Per.Set = as.numeric(Duration.Per.Set),
+         Weight = as.numeric(Weight))
+
+graph3 <- data4 %>%
+  group_by(Discipline, Player.Country) %>%
+  summarize(mean_duration = 
+              weighted.mean(Duration.Per.Set, Weight)) %>%
+  top_n(10, wt=mean_duration)
+
+#relevel
+graph3 <- graph3 %>% 
+  group_by(Discipline) %>%
+  arrange(Discipline, mean_duration) %>%
+  unite('temp', Discipline, Player.Country, sep = '_', remove = 
+          FALSE) %>%
+  data.frame() %>%
+  mutate(temp = factor(temp, levels = temp))
+ 
+graph3 %>%
+  group_by(Discipline) %>%
+  ggplot(aes(x = temp, y = mean_duration)) +
+  geom_point() +
+  facet_wrap(~Discipline, scales = 'free_y') +
+  coord_flip() +
+  scale_x_discrete(breaks = graph3$temp, labels = 
+                     graph3$Player.Country) +
+  ggtitle('Set Duration per Discipline and Country') +
+  xlab('Country') +
+  ylab('Mean set duration') +
+  theme(plot.title = element_text(hjust = 0.5)) 
+```
+
+For each discipline, we only consider the 10 countries with the longest average set duration. We can see that Japan appears on top for each discipline (except for XD, where it ranks third). A possible explanation is Japanese players' tendency to play more defensively as compared to other countries' players, thus resulting in longer set durations. In comparison, as Indonesian players tend to play offensively, their average match durations are not as long.
+ 
+  b. Match outcome
+
+1. Percentage of wins per discipline and country 
+```{r}
+data5 <- data
+data6_1 <- data5 %>% 
+  select(Player.1.Country, Discipline, Winner) %>%
+  mutate(Winner = ifelse(Winner == 1, 1, 0))
+colnames(data6_1) <- c('Player.Country', 'Discipline', 'Winner')
+
+data6_2 <- data5 %>% 
+  select(Player.2.Country, Discipline, Winner) %>%
+  mutate(Winner = ifelse(Winner == 2, 1, 0))
+colnames(data6_2) <- c('Player.Country', 'Discipline', 'Winner')
+
+data6 <- rbind(data6_1, data6_2)
+
+data7 <- data.frame(matrix(ncol = 4, nrow = 0))
+colnames(data7) <- c('Player.Country', 'Discipline', 'Winner', 'Weight')
+
+for(i in 1:nrow(data6)){
+  if(str_count(data6[i,1], "]") == 0){
+    data7[nrow(data7)+1, ] <- c(data6[i,], 1)
+  } else {
+    splitted <- strsplit(data6[i,1], "'")[[1]]
+    country1 <- splitted[2]
+    country2 <- splitted[4]
+    data7[nrow(data7)+1, ] <- 
+      c(country1, data6[i,2], data6[i,3], 0.5)
+    data7[nrow(data7)+1, ] <- 
+      c(country2, data6[i,2], data6[i,3], 0.5)
+  }
+}
+
+data7 <- data7 %>%
+  mutate(Winner = as.numeric(Winner),
+         Weight = as.numeric(Weight)) 
+
+graph4 <- data7 %>%
+  group_by(Discipline, Player.Country) %>%
+  summarize(winner_rate = 100*weighted.mean(Winner, Weight),
+            count = n()) %>%
+  filter(count > 100) %>% #only consider (discipline, country) pairs with at least 100 matches
+  top_n(10, wt=winner_rate)
+
+#relevel
+graph4 <- graph4 %>% 
+  group_by(Discipline) %>%
+  arrange(Discipline, winner_rate) %>%
+  unite('temp', Discipline, Player.Country, sep = '_', remove = FALSE) %>%
+  data.frame() %>%
+  mutate(temp = factor(temp, levels = temp))
+ 
+graph4 %>%
+  group_by(Discipline) %>%
+  ggplot(aes(x = temp, y = winner_rate)) +
+  geom_point() +
+  facet_wrap(~Discipline, scales = 'free_y') +
+  coord_flip() +
+  scale_x_discrete(breaks = graph4$temp, labels = 
+                     graph4$Player.Country) +
+  ggtitle('Percentage of Wins per Discipline and Country') +
+  xlab('Country') +
+  ylab('Percentage of wins') +
+  theme(plot.title = element_text(hjust = 0.5)) 
+```
+ 
+For each discipline, we only consider the 10 countries with the highest percentage of wins. From this plot, we can see that China has the highest winning percentage for MS, WS, XD. The countries that consistently have high rankings for all disciplines are China, Japan, Korea, Malaysia and Denmark. Indonesia ranks quite high on MD, MS and XD, but low on WS and WD.
+
+2. Percentage of wins per tournament level and country
+```{r}
+data8 <- data
+data9_1 <- data8 %>% 
+  select(Player.1.Country, Tournament.Type, Winner)
+colnames(data9_1) <- c('Player.Country', 'Tournament Type', 'Winner')
+data9_1 <- data9_1 %>%
+  mutate(Winner = ifelse(Winner == 1, 1, 0))
+
+data9_2 <- data8 %>%
+  select(Player.2.Country, Tournament.Type, Winner)
+colnames(data9_2) <- c('Player.Country', 'Tournament Type', 'Winner')
+data9_2 <- data9_2 %>%
+  mutate(Winner = ifelse(Winner == 2, 1, 0))
+
+data9 <- rbind(data9_1, data9_2)
+
+data10 <- data.frame(matrix(ncol = 4, nrow = 0))
+colnames(data10) <- c('Player.Country', 'Tournament.Type', 'Winner', 'Weight')
+
+for(i in 1:nrow(data9)){
+  if(str_count(data9[i,1], "]") == 0){
+    data10[nrow(data10)+1, ] <- c(data9[i,], 1)
+  } else {
+    splitted <- strsplit(data9[i,1], "'")[[1]]
+    country1 <- splitted[2]
+    country2 <- splitted[4]
+    data10[nrow(data10)+1, ] <- 
+      c(country1, data9[i,2], data9[i,3], 0.5)
+    data10[nrow(data10)+1, ] <- 
+      c(country2, data9[i,2], data9[i,3], 0.5)
+  }
+}
+```
+
+```{r}
+data10 <- data10 %>% 
+  mutate(Winner = as.numeric(Winner),
+         Weight = as.numeric(Weight))
+
+graph5 <- data10 %>%
+  group_by(Tournament.Type, Player.Country) %>%
+  summarize(winner_rate = 100*weighted.mean(Winner, Weight),
+            count = n()) %>%
+  filter(count > 100) %>% #only consider (level, country) pairs with at least 100 matches
+  top_n(10, wt=winner_rate)
+
+#relevel
+graph5 <- graph5 %>% 
+  group_by(Tournament.Type) %>%
+  arrange(Tournament.Type, winner_rate) %>%
+  unite('temp', Tournament.Type, Player.Country, sep = '_', 
+        remove = FALSE) %>%
+  data.frame() %>%
+  mutate(temp = factor(temp, levels = temp))
+ 
+#plot
+graph5 %>%
+  group_by(Tournament.Type) %>%
+  ggplot(aes(x = temp, y = winner_rate)) +
+  geom_point() +
+  facet_wrap(~Tournament.Type, scales = 'free_y') +
+  coord_flip() +
+  scale_x_discrete(breaks = graph5$temp, labels = 
+                     graph5$Player.Country) +
+  ggtitle('Percentage of Wins per Tournament Level and Country') +
+  xlab('Country') +
+  ylab('Percentage of wins') +
+  theme(plot.title = element_text(hjust = 0.5))  
+```
+
+For each tournament level, we only consider at most 10 countries with the highest percentage of wins. From this plot, we can see that either China or Japan has the highest winning percentage across all tournament levels. The countries that consistently have high rankings for all tournament levels are China, Japan, Korea, Indonesia and Denmark.
+
+  c. Tournament outcome
+
+1. Number of tournaments won by country per tournament level.
+```{r}
+data17 <- data %>%
+  filter(Match.Date == Tournament.End.Date) 
+
+#only three tournaments (Austrian, Welsh, Polish) have semi-final matches on the last day of the tournament. we decide to hard-code those.
+data18 <- data %>%
+  filter(Match.Date == Tournament.End.Date) 
+data18 <- data18 %>%
+  filter(!Tournament.Name %in%
+                   c('Austrian Open 2018',
+                     'VICTOR Welsh International 2018',
+                     'Polish International 2018'))
+
+data19_1 <- data18 %>% 
+  select(Player.1.Country, Tournament.Type, Winner)
+colnames(data19_1) <- c('Player.Country', 'Tournament.Type', 'Winner')
+data19_1 <- data19_1 %>%
+  mutate(Winner = ifelse(Winner == 1, 1, 0))
+
+data19_2 <- data18 %>% 
+  select(Player.2.Country, Tournament.Type, Winner)
+colnames(data19_2) <- c('Player.Country', 'Tournament.Type', 'Winner')
+data19_2 <- data19_2 %>%
+  mutate(Winner = ifelse(Winner == 2, 1, 0))
+
+data19 <- rbind(data19_1, data19_2)
+data19 <- data19 %>%
+  filter(Winner == 1)
+data19 <- data19 %>%
+  select(Player.Country, Tournament.Type) 
+
+data20 <- data.frame(matrix(ncol = 3, nrow = 0))
+colnames(data20) <- c('Player.Country', 'Tournament.Type', 'Weight')
+
+for(i in 1:nrow(data19)){
+  if(str_count(data19[i,1], "]") == 0){
+    data20[nrow(data20)+1, ] <- c(data19[i,], 1)
+  } else {
+    splitted <- strsplit(data19[i,1], "'")[[1]]
+    country1 <- splitted[2]
+    country2 <- splitted[4]
+    data20[nrow(data20)+1, ] <- 
+      c(country1, data19[i,2], 0.5)
+    data20[nrow(data20)+1, ] <- 
+      c(country2, data19[i,2], 0.5)
+  }
+}
+
+#hardcode for 3 tournaments
+data20[nrow(data20)+1, ] <- c('India', 'IS + IC', 1)
+data20[nrow(data20)+1, ] <- c('Denmark', 'IS + IC', 1)
+data20[nrow(data20)+1, ] <- c('Chinese Taipei', 'IS + IC', 1)
+data20[nrow(data20)+1, ] <- c('Japan', 'IS + IC', 1)
+data20[nrow(data20)+1, ] <- c('Russia', 'IS + IC', 1)
+data20[nrow(data20)+1, ] <- c('Spain', 'IS + IC', 1)
+data20[nrow(data20)+1, ] <- c('Spain', 'IS + IC', 1)
+data20[nrow(data20)+1, ] <- c('England', 'IS + IC', 1)
+data20[nrow(data20)+1, ] <- c('England', 'IS + IC', 1)
+data20[nrow(data20)+1, ] <- c('Scotland', 'IS + IC', 1)
+data20[nrow(data20)+1, ] <- c('Germany', 'IS + IC', 1)
+data20[nrow(data20)+1, ] <- c('India', 'IS + IC', 1)
+data20[nrow(data20)+1, ] <- c('Chinese Taipei', 'IS + IC', 1)
+data20[nrow(data20)+1, ] <- c('Japan', 'IS + IC', 1)
+data20[nrow(data20)+1, ] <- c('Czech Republic', 'IS + IC', 1)
+
+data20 <- data20 %>%
+  mutate(Weight = as.numeric(Weight))
+
+graph8 <- data20 %>%
+  group_by(Tournament.Type, Player.Country) %>%
+  summarize(total_win = sum(Weight)) %>%
+  top_n(10, wt = total_win)
+
+#relevel
+graph8 <- graph8 %>% 
+  group_by(Tournament.Type) %>%
+  arrange(Tournament.Type, total_win) %>%
+  unite('temp', Tournament.Type, Player.Country, sep = '_', 
+        remove = FALSE) %>%
+  data.frame() %>%
+  mutate(temp = factor(temp, levels = temp))
+ 
+graph8 %>%
+  group_by(Tournament.Type) %>%
+  ggplot(aes(x = temp, y = total_win, fill = Player.Country)) +
+  geom_bar(stat = 'identity') +
+  facet_wrap(~Tournament.Type, scales = 'free_y') +
+  coord_flip() +
+  scale_x_discrete(breaks = graph8$temp, labels = 
+                     graph8$Player.Country) +
+  ggtitle('Number of Wins by Country per Tournament Level') +
+  xlab('Country') +
+  ylab('# Tournaments won') +
+  theme(plot.title = element_text(hjust = 0.5))  
+```
+
+From this plot, we can see that Japan has the highest number of tournament wins for each tournament type except IS + IC. Also, the countries with high number of wins across types are Japan. China and Indonesia. Only 7 countries have won the highest level tournaments (in general, as tournaments become more competitive, the number of countries which have won them decrease).
+ 
+  d. Percentage of two-set wins out of all wins
+```{r}
+data11 <- data
+data11 <- data %>%
+  filter(Retired == FALSE)
+data11 <- data11 %>%
+  mutate(Number.Of.Set = (str_count(Match.Score, ',') + 1)/2)
+
+data12_1 <- data11 %>% 
+  select(Player.1.Country, Discipline, Winner, Number.Of.Set)
+colnames(data12_1) <- c('Player.Country', 'Discipline', 'Winner', 'Number.Of.Set')
+data12_1 <- data12_1 %>%
+  mutate(Winner = ifelse(Winner == 1, 1, 0))
+
+data12_2 <- data11 %>% 
+  select(Player.2.Country, Discipline, Winner, Number.Of.Set)
+colnames(data12_2) <- c('Player.Country', 'Discipline', 'Winner', 'Number.Of.Set')
+data12_2 <- data12_2 %>%
+  mutate(Winner = ifelse(Winner == 2, 1, 0))  
+
+data12 <- rbind(data12_1, data12_2)
+data12 <- data12 %>%
+  filter(Winner == 1) %>%
+  select(Player.Country, Discipline, Number.Of.Set) %>%
+  mutate(Two.Set = ifelse(Number.Of.Set == 2, 1, 0)) %>%
+  select(Player.Country, Discipline, Two.Set)
+  
+data13 <- data.frame(matrix(ncol = 4, nrow = 0))
+colnames(data13) <- c('Player.Country', 'Discipline', 'Two.Set', 'Weight')
+
+for(i in 1:nrow(data12)){
+  if(str_count(data12[i,1], "]") == 0){
+    data13[nrow(data13)+1, ] <- c(data12[i,], 1)
+  } else {
+    splitted <- strsplit(data12[i,1], "'")[[1]]
+    country1 <- splitted[2]
+    country2 <- splitted[4]
+    data13[nrow(data13)+1, ] <- 
+      c(country1, data12[i,2], data12[i,3], 0.5)
+    data13[nrow(data13)+1, ] <- 
+      c(country2, data12[i,2], data12[i,3], 0.5)
+  }
+}
+```
+
+```{r}
+data13 <- data13 %>%
+  mutate(Two.Set = as.numeric(Two.Set),
+         Weight = as.numeric(Weight))
+ 
+graph6 <- data13 %>%
+  group_by(Discipline, Player.Country) %>%
+  summarize(twoset_rate = 
+              100*weighted.mean(Two.Set, Weight), count = n()) %>%
+  filter(count > 100) %>% #only consider (discipline, country) pair with more than 100 wins
+  top_n(10, wt=twoset_rate)
+
+#relevel
+graph6 <- graph6 %>% 
+  group_by(Discipline) %>%
+  arrange(Discipline, twoset_rate) %>%
+  unite('temp', Discipline, Player.Country, sep = '_', remove = 
+          FALSE) %>%
+  data.frame() %>%
+  mutate(temp = factor(temp, levels = temp))
+ 
+#plot
+graph6 %>%
+  group_by(Discipline) %>%
+  ggplot(aes(x = temp, y = twoset_rate, fill = Player.Country)) +
+  geom_bar(stat = 'identity') +
+  facet_wrap(~Discipline, scales = 'free_y') +
+  coord_flip() +
+  scale_x_discrete(breaks = graph6$temp, labels = 
+                     graph6$Player.Country) +
+  xlab('Country') +
+  ylab('Percentage of two set wins') +
+  ggtitle('Percentage of Two-set Wins') +  
+  theme(plot.title = element_text(hjust = 0.5)) 
+```
+
+For each discipline, we only consider at most 10 countries with the highest percentage of two-set wins. From this plot, we can see that only a few countries managed to win more than 100 matches in each of WS and WD (as compared to other disciplines in which a lot of countries managed to win more than 100 matches). Also, in general percentage of two-set wins does not correlate with the overall performance of the countries, except for MS and WD.
+
+### 5c. Analysis of players
+ a. Percentage of matches won
+```{r}
+data21_1 <- data %>% 
+  select(Player.1.Name, Discipline, Winner)
+colnames(data21_1) <- c('Player.Name', 'Discipline', 'Winner')
+data21_1 <- data21_1 %>%
+  mutate(Winner = ifelse(Winner == 1, 1, 0))
+
+data21_2 <- data %>% 
+  select(Player.2.Name, Discipline, Winner)
+colnames(data21_2) <- c('Player.Name', 'Discipline', 'Winner')
+data21_2 <- data21_2 %>%
+  mutate(Winner = ifelse(Winner == 2, 1, 0))
+
+data21 <- rbind(data21_1, data21_2)
+
+graph9 <- data21 %>%
+  group_by(Discipline, Player.Name) %>%
+  summarize(percent_win = 100*mean(Winner), count = n()) %>%
+  filter(count > 30) %>% #only consider players who have played at least 30 matches
+  top_n(7, wt=percent_win)
+
+ggplot(graph9, aes(x=percent_win, 
+                   y=reorder(Player.Name, percent_win))) +
+  geom_point(color='blue') +  
+  facet_wrap(~Discipline, scales = 'free_y', nrow=3) +
+  xlab('Percentage of wins') +
+  ylab('Player name') +
+  ggtitle('Percentage of Wins') +  
+  theme(plot.title = element_text(hjust = 0.5)) 
+   
+```
+
+From the plot, we see that three players stood out, namely Gideon/Sukamuljo (INA), Zheng/Huang (CHN) and Momota (JPN). These players are the number 1 ranked players at the end of 2018.
+  
+ b. Percentage of two-set wins
+```{r}
+data22 <- data
+data22 <- data22 %>%
+  mutate(Number.Of.Set = (str_count(Match.Score, ',') + 1)/2) %>%
+  mutate(Duration.Per.Set = Duration/Number.Of.Set) 
+
+#only consider matches where Retired = FALSE
+data22 <- data22 %>%
+  filter(Retired == FALSE)
+data23_1 <- data22 %>% 
+  select(Player.1.Name, Discipline, Winner, Number.Of.Set)
+colnames(data23_1) <- c('Player.Name', 'Discipline', 'Winner', 'Number.Of.Set')
+data23_1 <- data23_1 %>%
+  mutate(Winner = ifelse(Winner == 1, 1, 0))
+data23_2 <- data22 %>% 
+  select(Player.2.Name, Discipline, Winner, Number.Of.Set)
+colnames(data23_2) <- c('Player.Name', 'Discipline', 'Winner', 'Number.Of.Set')
+data23_2 <- data23_2 %>%
+  mutate(Winner = ifelse(Winner == 2, 1, 0))
+
+data23 <- rbind(data23_1, data23_2)
+data23 <- data23 %>%
+  filter(Winner == 1) %>%
+  select(Player.Name, Discipline, Number.Of.Set) %>%
+  mutate(Two.Set = ifelse(Number.Of.Set == 2, 1, 0)) %>%
+  select(Player.Name, Discipline, Two.Set)
+  
+graph11 <- data23 %>%
+  group_by(Discipline, Player.Name) %>%
+  summarize(percent_twoset = 100*mean(Two.Set), count = n()) %>%
+  filter(count > 20) %>% #only consider players who have won at least 20 matches
+  top_n(7, wt=percent_twoset)
+
+ggplot(graph11, aes(x=percent_twoset, 
+                   y=reorder(Player.Name, percent_twoset))) +
+  geom_point(color='blue') +  
+  facet_wrap(~Discipline, scales = 'free_y', nrow=3) +
+  xlab('Percentage of two-set wins') +
+  ylab('Player name') +
+  ggtitle('Percentage of Two-Set Wins') +  
+  theme(plot.title = element_text(hjust = 0.5))  
+``` 
+
+From this plot, we can see that the percentage of two-set wins (out of all wins) does not correlate with the players' overall performance (winning records).
+
+ c. Match duration per set
+```{r}
+data24 <- data
+data24 <- data24 %>%
+  mutate(Number.Of.Set = (str_count(Match.Score, ',') + 1)/2) %>%
+  mutate(Duration.Per.Set = Duration/Number.Of.Set)
+
+# only consider matches where Retired = FALSE with available duration
+data24 <- data24 %>%
+  filter(Retired == FALSE & !is.na(Duration))
+
+data25_1 <- data24 %>% 
+  select(Player.1.Name, Discipline, Duration.Per.Set)
+colnames(data25_1) <- c('Player.Name', 'Discipline', 'Duration.Per.Set')
+data25_2 <- data24 %>% 
+  select(Player.2.Name, Discipline, Duration.Per.Set)
+colnames(data25_2) <- c('Player.Name', 'Discipline', 'Duration.Per.Set')
+
+data25 <- rbind(data25_1, data25_2)
+
+graph13 <- data25 %>%
+  group_by(Discipline, Player.Name) %>%
+  summarize(mean_duration = mean(Duration.Per.Set), count = n()) %>%
+  filter(count > 30) %>% #only consider players who have played at least 30 matches
+  top_n(7, wt=mean_duration)
+
+ggplot(graph13, aes(x=mean_duration, 
+                   y=reorder(Player.Name, mean_duration))) +
+  geom_point(color='blue') +  
+  facet_wrap(~Discipline, scales = 'free_y', nrow=3) +
+  xlab('Average duration of sets') +
+  ylab('Player name') +
+  ggtitle('Average Duration of Sets') +  
+  theme(plot.title = element_text(hjust = 0.5)) 
+```
+
+From this plot, we can see that players who adopt a defensive playing style tend to have a higher average set duration.
+
+ d. Consecutive points
+```{r}
+data26 <- data %>%
+  filter(Retired == FALSE)
+  
+first_cp <- function(x){
+  t <- gsubfn(".", list("[" = "", "]" = "", "'" = ""), x)
+  return(as.integer(strsplit(t,',')[[1]][1]))
+}
+
+second_cp <- function(x){
+  t <- gsubfn(".", list("[" = "", "]" = "", "'" = ""), x)
+  return(as.integer(strsplit(t,',')[[1]][2]))
+}
+
+data26 <- data26 %>%
+  mutate(first_mcp = first_cp(Match.Statistic),
+         second_mcp = second_cp(Match.Statistic)) 
+```
+
+```{r}
+data27_1 <- data26 %>% 
+  select(Player.1.Name, Player.1.Country, first_mcp, Discipline)
+colnames(data27_1) <- c('Player.Name', 'Player.Country', 'MCP', 'Discipline')
+data27_2 <- data26 %>% 
+  select(Player.2.Name, Player.2.Country, second_mcp, Discipline)
+colnames(data27_2) <- c('Player.Name', 'Player.Country', 'MCP', 'Discipline')
+data27 <- rbind(data27_1, data27_2)
+
+graph14 <- data27 %>%
+  group_by(Discipline, Player.Name) %>%
+  summarize(mean_mcp = mean(MCP), count = n()) %>%
+  filter(count > 30) %>% #only consider players who have played at least 30 matches
+  top_n(7, wt=mean_mcp)
+
+ggplot(graph14, aes(x=mean_mcp, 
+                   y=reorder(Player.Name, mean_mcp))) +
+  geom_point(color='blue') +  
+  facet_wrap(~Discipline, scales = 'free_y', nrow=3) +
+  xlab('Average maximum consecutive points') +
+  ylab('Player name') +
+  ggtitle('Average Maximum Consecutive Points') +  
+  theme(plot.title = element_text(hjust = 0.5)) 
+```
+
+From this plot, we see that the players who score the most consecutive points on average are Gideon/Sukamuljo (IDN), Axelsen (DEN, Tai Tzu Ying (TPE) and Ahmad/Natsir (IDN). All of them are top-ranked players.
+
+e. Comeback executors and victims
+
+In a match between player x and y, we say that x is a comeback executor iff x wins the second and third sets, but loses the first set. Also, we say that x is a comeback victim iff x wins the first set, but loses the second and third sets.
+```{r}
+data30 <- data %>%
+  filter(Retired == FALSE)
+  
+comeback <- function(match_score){
+  if(str_count(match_score, ',') < 5){
+    return(0)
+  } else {
+    match_score <- gsubfn(".", list("[" = "", "]" = "", "'" = ""), 
+                          match_score)
+    match_score <- strsplit(match_score,',')[[1]]
+    s1 <- as.integer(match_score[1])
+    s2 <- as.integer(match_score[2])
+    s3 <- as.integer(match_score[3])
+    s4 <- as.integer(match_score[4])
+    s5 <- as.integer(match_score[5])
+    s6 <- as.integer(match_score[6])
+    if(s1<s2 & s3>s4 & s5>s6){
+      return(1)
+    } else if(s1>s2 & s3<s4 & s5<s6){
+      return(2)
+    } else {
+      return(0) 
+    }
+   }
+}
+
+data30['Comeback'] <- unlist(lapply(data30[1:nrow(data30), 'Match.Score'], comeback))
+```
+
+```{r}
+data31_1 <- data30 %>%
+  filter(Comeback == 1) %>%
+  select(Player.1.Name, Player.1.Country, Discipline)
+colnames(data31_1) <- c('Player.Name', 'Player.Country', 'Discipline')
+data31_2 <- data30 %>%
+  filter(Comeback == 2) %>%
+  select(Player.2.Name, Player.2.Country, Discipline)
+colnames(data31_2) <- c('Player.Name', 'Player.Country', 'Discipline')
+data31 <- rbind(data31_1, data31_2)
+
+graph17 <- data31 %>%
+  group_by(Discipline, Player.Name) %>%
+  summarize(count = n()) %>%
+  top_n(5, wt=count)
+
+ggplot(graph17, aes(x=count, 
+                   y=reorder(Player.Name, count))) +
+  geom_point(color='blue') +  
+  facet_wrap(~Discipline, scales = 'free_y', nrow=3) +
+  xlab('Total comeback executors') +
+  ylab('Player name') +
+  ggtitle('Number of Comebacks Made ') +  
+  theme(plot.title = element_text(hjust = 0.5)) 
+```
+
+From this plot, we can see that players who made a lot of comebacks tend to be high-ranked players. 
+
+```{r}
+data32_1 <- data30 %>%
+  filter(Comeback == 1) %>%
+  select(Player.2.Name, Player.2.Country, Discipline)
+colnames(data32_1) <- c('Player.Name', 'Player.Country', 'Discipline')
+data32_2 <- data30 %>%
+  filter(Comeback == 2) %>%
+  select(Player.1.Name, Player.1.Country, Discipline)
+colnames(data32_2) <- c('Player.Name', 'Player.Country', 'Discipline')
+data32 <- rbind(data32_1, data32_2)
+
+graph18 <- data32 %>%
+  group_by(Discipline, Player.Name) %>%
+  summarize(count = n()) %>%
+  top_n(5, wt=count)
+
+ggplot(graph18, aes(x=count, 
+                   y=reorder(Player.Name, count))) +
+  geom_point(color='blue') +  
+  facet_wrap(~Discipline, scales = 'free_y', nrow=3) +
+  xlab('Total comeback victims') +
+  ylab('Player name') +
+  ggtitle('Number of Matches Lost due to Comeback') +  
+  theme(plot.title = element_text(hjust = 0.5)) 
+```
+
+From this plot, we can see that there are two players who have been comeback victims in exceptionally high numbers of occassions are Lamsfuss/Herttrich (GER) and Lu/Yang (TPE). Also, the players mentioned in the plot tend to be players of lower ranks and more likely to be less experienced.
+
+  f. Underdog (unseeded) player wins
+```{r}
+data28 <- data
+data28 <- data28 %>%
+  filter(as.numeric(is.na(Player.1.Seed)) + 
+           as.numeric(is.na(Player.2.Seed)) == 1)
+data29_1 <- data28 %>% 
+  select(Player.1.Name, Player.1.Country, Player.1.Seed, Winner, Discipline)
+data29_1 <- data29_1 %>%
+  mutate(Winner = ifelse(Winner == 1, 1, 0))
+colnames(data29_1) <- c('Player.Name', 'Player.Country', 'Player.Seed', 'Winner', 'Discipline')
+
+data29_2 <- data28 %>% 
+  select(Player.2.Name, Player.2.Country, Player.2.Seed, Winner, Discipline)
+data29_2 <- data29_2 %>%
+  mutate(Winner = ifelse(Winner == 2, 1, 0))
+colnames(data29_2) <- c('Player.Name', 'Player.Country', 'Player.Seed', 'Winner', 'Discipline')
+data29 <- rbind(data29_1, data29_2)
+data29 <- data29 %>% 
+  filter(is.na(Player.Seed) & Winner == 1)
+
+graph19 <- data29 %>%
+  group_by(Discipline, Player.Name) %>%
+  summarize(count = n()) %>%
+  top_n(5, wt=count)
+
+ggplot(graph19, aes(x=count, 
+                   y=reorder(Player.Name, count))) +
+  geom_point(color='blue') +  
+  facet_wrap(~Discipline, scales = 'free_y', nrow=3) +
+  xlab('Total unseeded wins') +
+  ylab('Player name') +
+  ggtitle('Number of Unseeded Wins') +  
+  theme(plot.title = element_text(hjust = 0.5)) 
+```
+
+From this plot, we can see that there are two unseeded players who have won against seeded players in exceptionally high numbers of occassions are Momota (JPN) and Li (CHN). The reason behind this is because both players had not been playing for a long time, which resulted in a huge rank drop. Once they decided to play again, they needed to play in low-level tournaments to gain enough ranking points.
+ 
+g. Head-to-head records
+```{r fig.height = 15, fig.width = 10}
+data30 <- data
+combine <- function(x, y){
+  if(x < y){
+    return(paste(x, y, sep = '&'))
+  } else {
+    return(paste(y, x, sep = '&'))
+  }
+}
+
+data30 <- data30 %>% 
+  rowwise() %>%
+  mutate(combined = combine(Player.1.Name, Player.2.Name)) %>%
+  mutate(winner_name = ifelse(Winner == 1, Player.1.Name, Player.2.Name)) %>%
+  data.frame()
+
+data30 <- data.frame(data30) %>%
+  group_by(combined, winner_name, Discipline) %>%
+  select(combined, winner_name, Discipline) %>%
+  summarize(count = n()) %>%
+  data.frame()
+
+data31 <- data.frame(data30) %>% 
+  group_by(combined, Discipline) %>%
+  summarize(sum = sum(count)) %>%
+  data.frame()
+
+data30 <- data30 %>%
+  rowwise() %>%
+  mutate(weight = ifelse(substr(winner_name, 1, 10) == substr(combined, 1, 10), 1, -1)) %>%
+  mutate(net = weight * count) %>%
+  data.frame() %>%
+  group_by(combined, Discipline) %>%
+  summarize(sum_net = sum(net)) %>%
+  select(combined, sum_net)
+
+data32 <- merge(x = data30, y = data31, by = 'combined', all.x = TRUE)
+
+flipname <- function(x, y){
+  if(y >= 0){
+    return(x)
+  } else {
+    split = strsplit(x, '&')[[1]]
+    p1 = split[1]
+    p2 = split[2]
+    return(paste(p2, p1, sep = '&'))
+  }
+}
+
+data32 <- data32 %>%
+  rowwise() %>%
+  mutate(new_combined = flipname(combined, sum_net),
+         new_sum_net = abs(sum_net)) %>%
+  data.frame() %>%
+  select(new_combined, new_sum_net, sum, Discipline)
+
+graph20 <- data32 %>%
+  group_by(Discipline) %>%
+  top_n(3, wt = sum) #select top 3  
+ 
+ggplot(graph20) +
+  geom_point(aes(x=sum, y=reorder(new_combined, sum), colour = 'Total meetings')) +
+  geom_point(aes(x=new_sum_net, y=new_combined, colour = 'Net Head to Head')) +
+  facet_wrap(~Discipline, scales = 'free_y', nrow=5) +
+  xlab('') +
+  ylab('Player name') +
+  ggtitle('Total Meetings and Net Head to Head') +  
+  theme(plot.title = element_text(hjust = 0.5)) 
+```
+
+Since this static plot is hard to interpret, we create an interactive plot in D3 to better visualize the head to head of the pairs of player.
+
+h. Parallel Coordinate Plots for top 15 players in each discipline
+
+Component: Player Name, Discipline, Avg_set_duration, Avg_num_set, Num_Played, Wins, Win_Perc played
+```{r}
+data33 <- data
+
+#only consider matches where Retired = FALSE and available duration
+data33 <- data %>%
+   mutate(Number.Of.Set = (str_count(Match.Score, ',') + 1)/2,
+          Duration.Per.Set = Duration/Number.Of.Set) %>%
+  filter(Retired == FALSE & !is.na(Duration))
+
+#select players for p1
+data33_1 <- data33 %>% 
+  select(Player.1.Name, Discipline, Winner, Number.Of.Set, Duration.Per.Set) %>%
+  mutate(source = "p1")
+colnames(data33_1) <- c('Player.Name', 'Discipline', 'Winner', 'Number.Of.Set', 'Duration.Per.Set', 'source')
+
+#select players for p2
+data33_2 <- data33 %>% 
+  select(Player.2.Name, Discipline, Winner, Number.Of.Set, Duration.Per.Set) %>%
+  mutate(source = "p2")
+colnames(data33_2) <- c('Player.Name', 'Discipline', 'Winner', 'Number.Of.Set', 'Duration.Per.Set', 'source')
+
+
+data33 <- rbind(data33_1, data33_2)
+
+wins <- data33 %>%
+  mutate(win = ifelse(substr(source,2,2) == Winner, 1, 0)) %>%
+  group_by(Player.Name, Discipline) %>%
+  summarise(num_played = n(), wins = sum(win)) %>%
+  mutate(win_perc = wins/num_played)
+
+graph21 <- data33 %>%
+  group_by(Player.Name, Discipline) %>%
+  summarise(avg_set_duration = mean(Duration.Per.Set), avg_num_set = mean(Number.Of.Set))
+
+graph21 <- merge(graph21, wins, all.x = TRUE)
+
+graph21 <- graph21 %>% 
+  filter(Player.Name %in% c('Kento MOMOTA', 'SHI Yu Qi', 'CHOU Tien Chen', 'CHEN Long', 'SON Wan Ho', 'Viktor AXELSEN', 
+                            'Anthony Sinisuka GINTING', 'KIDAMBI Srikanth', 'Tommy SUGIARTO', 'Kenta NISHIMOTO','Jonatan CHRISTIE',
+                            'Sameer VERMA', 'LIN Dan', 'NG Ka Long Angus', 'Kantaphon WANGCHAROEN',
+                            'TAI Tzu Ying', 'Nozomi OKUHARA', 'PUSARLA V. Sindhu', 'CHEN Yu Fei', 'Akane YAMAGUCHI', 
+                            'Carolina MARIN', 'HE Bing Jiao', 'Ratchanok INTANON', 'Saina NEHWAL', 'Beiwen ZHANG', 
+                            'SUNG Ji Hyun', 'Sayaka TAKAHASHI', 'Michelle LI', 'Nitchaon JINDAPOL', 'Gregoria Mariska TUNJUNG',
+                            "['Yuki FUKUSHIMA', 'Sayaka HIROTA']","['Misaki MATSUTOMO', 'Ayaka TAKAHASHI']",
+                            "['Mayu MATSUMOTO', 'Wakana NAGAHARA']", "['Greysia POLII', 'Apriyani RAHAYU']",
+                            "['CHEN Qing Chen', 'JIA Yi Fan']","['LEE So Hee', 'SHIN Seung Chan']","['Shiho TANAKA', 'Koharu YONEMOTO']",
+                            "['Jongkolphan KITITHARAKUL', 'Rawinda PRAJONGJAI']","['Gabriela STOEVA', 'Stefani STOEVA']",
+                            "['Ayako SAKURAMOTO', 'Yukiko TAKAHATA']", "['DU Yue', 'LI Yin Hui']",
+                            "['Della Destiara HARIS', 'Rizki Amelia PRADIPTA']", "['Nami MATSUYAMA', 'Chiharu SHIDA']",
+                            "['Maiken FRUERGAARD', 'Sara THYGESEN']", "['Naoko FUKUMAN', 'Kurumi YONAO']",
+                            "['ZHENG Si Wei', 'HUANG Ya Qiong']","['WANG Yi Lyu', 'HUANG Dong Ping']",
+                            "['Yuta WATANABE', 'Arisa HIGASHINO']", "['Tontowi AHMAD', 'Liliyana NATSIR']",
+                            "['Dechapol PUAVARANUKROH', 'Sapsiree TAERATTANACHAI']","['CHAN Peng Soon', 'GOH Liu Ying']",
+                            "['TANG Chun Man', 'TSE Ying Suet']","['Mathias CHRISTIANSEN', 'Christinna PEDERSEN']",
+                            "['Chris ADCOCK', 'Gabrielle ADCOCK']","['ZHANG Nan', 'LI Yin Hui']","['GOH Soon Huat', 'LAI Shevon Jemie']",
+                            "['Hafiz FAIZAL', 'Gloria Emanuelle WIDJAJA']","['HE Ji Ting', 'DU Yue']",
+                            "['Marcus ELLIS', 'Lauren SMITH']","['Praveen JORDAN', 'Melati Daeva OKTAVIANTI']",
+                            "['Marcus Fernaldi GIDEON', 'Kevin Sanjaya SUKAMULJO']", "['LI Jun Hui', 'LIU Yu Chen']", 
+                            "['Takeshi KAMURA', 'Keigo SONODA']", "['CHEN Hung Ling', 'WANG Chi-Lin']",
+                            "['Hiroyuki ENDO', 'Yuta WATANABE']", "['Kim ASTRUP', 'Anders Skaarup RASMUSSEN']",
+                            "['Fajar ALFIAN', 'Muhammad Rian ARDIANTO']","['HAN Cheng Kai', 'ZHOU Hao Dong']",
+                            "['Mohammad AHSAN', 'Hendra SETIAWAN']", "['LIU Cheng', 'ZHANG Nan']",
+                            "['Takuto INOUE', 'Yuki KANEKO']","['LIAO Min Chun', 'SU Ching Heng']",
+                            "['HE Ji Ting', 'TAN Qiang']","['GOH V Shem','TAN Wee Kiong']",
+                            "['Mads CONRAD-PETERSEN', 'Mads Pieler KOLDING'"
+                            ))
+
+
+parcoords( graph21, 
+  color = list(
+    colorScale = "scaleOrdinal",
+    colorBy = "Discipline",
+    colorScheme = "schemeCategory10"
+  ),
+  withD3 = TRUE,
+  reorderable = TRUE,
+  brushMode = "1D-axes",
+  alpha = 0.5,
+)
+```
+
+From the Parallel Coordinate Plot, we can see that XD matches (for the top 15 players) tend to have the lowest avg set duration as compared to other disciplines. In terms of the avg_set_duration and avg_num_set, there does not seem to be correlation between them. In terms of the number of games played, those that have low avg_num_set, tend to have high num of games played across all disciplines. Finally, in terms of number of win percentage, As expected, the dominant players who are highly ranked tend to top the win_percentage in each category.  
+
+## 6. Interactive Component
+We created 4 (four) interactive plots using D3 to complement our analyses and static visualizations. The link to the website is https://jsantoso2.github.io/EDAV-Final-Project-Fall-2019/
+
+### 6a. Tree diagram
+The first plot is a tree diagram which summarizes top 15 badminton players by end of 2018 for each discipline. For each player, we provide information about nationality, career win percentage, career record and career prize.
+
+### 6b. Directed graph of head-to-head records
+For each discipline, we create a directed graph whose nodes correspond to each of the top 15 players by the end of 2018. The node size corresponds to the number of wins in 2018. For each pair of player A and B, we draw a directed edge from A to B iff out of all meetings involving A and B in 2018, A has more wins than B. We draw a directed edge from B to A iff B has more wins than A. We do not draw any edge from A to B iff A and B never met in 2018 or A has the same number of wins as B. We use a darker shade for edges corresponding to net win greater than 1.
+
+### 6c. Player count world map in 2018
+For each discipline, we create a choropleth map with fill corresponding to the number of unique players representing each country. 
+
+### 6d. Number of trophies won in 2018
+For each discipline and each country (which can be double-clicked from the map in 6c), we create a bar chart of the number of trophies won by tournament level.
+
+## 7. Conclusion
+In conclusion, we have analyzed the BWF tournaments in 2018 at both the match and player level. At the match level, we analyzed the set duration, match outcome, tournament outcome, and percentage of two-set matches out of all matches; while at the player level, we analyzed players with the highest percentage of matches won, percentage of two-set wins, longest match duration per set, average most consecutive points, most number of comebacks and unseeded wins, as well as the set of players with the most encounters in 2018 including their head-to-head records. From the analysis presented above, we found the following key findings.
+
+At the Match and Tournament level:
+
+1. Players who tend to be play more offensively tend to have shorter match durations
+2. Countries like JPN whose players tend to play more defensively have much longer longer match durations
+3. Across all tournament levels, MS consistenly has higher match durations as compared to other disciplines
+4. There are several countries that dominate the badminton field in terms of win percentages and number of tournaments won including China, Japan and Indonesia across all disciplines.
+
+At the Players level: 
+
+1. MS: Kento Momota (JPN), WS: Tai Tzu Ying (TPE), MD: Marcus Fernaldi Gideon/Kevin Sanjaya Sukamuljo (INA), 
+   WD: Yuki Fukushima/Sayaka Hirota (JPN), XD: Zheng Siwei/Huang Yaqiong (CHN)
+   which are the world #1 ranked player at the end of 2018 in each respective discipline, tend to dominate in terms of 
+   players statistics, and number of tournments won.
+2. Different players have different characteristics of play. Some players tend to become more offensive which leads to shorter
+   match duration and potentially 2 set matches (instead of 3).
+3. The dominant countries (ex: Japan, China, Indonesia) tend to produce players with high quality which leads them to winning more 
+   matches and tournaments. 
+   
+
+The limitations of this analysis are:
+
+1. We only considered matches data from 2018.
+2. For head-to-head analysis, we only considered players ranked in the top 15 by the end of 2018.
+3. We excluded matches with incomplete data. This, however, should not be a big issue since these matches typically involve less professional players.
+
+In the future, more research can be done on:
+
+1. Extending the same analysis for players, matches and tournaments in 2019.
+2. Players' improvement throughout their career.
+3. Predictive analysis of match results based on past results. 
+
+The lessons learned:
+
+1. Experience on web scraping with Python and BeautifulSoup.
+2. Experience on data manipulation and static visualization in R (Ex: ggplot and other various packages)
+3. Experience on creating interactive visualization using D3.
+ 
