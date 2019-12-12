@@ -48,8 +48,8 @@ MD = Men's Doubles \
 WD = Women's Doubles \
 XD = Mixed Doubles \
 
-Tournament Levels (in ascending order of prestige): \
-Continental = Continental Championship Tournaments \
+Tournament Levels: \
+Continental = Continental Championship Tournaments (Ex: Asian Games, African Games, etc) \
 IS + IC = International Series + International Challenge Tournaments \
 Super100 = Super100 Tournaments \
 Super300 = Super300 Tournaments \
@@ -258,9 +258,9 @@ ggplot(summary3, aes(Tournament.Type, count)) +
   theme(axis.text.x = element_text(angle = 20, hjust = 1))
 ```
 
-Note: Due to missing data, several IS + IC tournaments have been excluded from the data which does not reflect the true number of The number of IS + IC tournaments.
+Note: Due to missing data, several IS + IC tournaments have been excluded from the data which does not reflect the true number of IS + IC tournaments.
 
-This plot describes the distribution of tournaments across 2018 where we can observe that, in general, the number of tournaments that occur decreases as prestige increases. One exception to this trend is the Continental tournaments which occur less frequently due to its regional specificity.
+This plot describes the distribution of tournaments across 2018 where we can observe that, in general, the number of tournaments that occur decreases as prestige increases. One exception to this trend is the Continental tournaments which is a separate category and occur less frequently due to its regional specificity.
 
 
 4. Number of tournaments throughout 2018
