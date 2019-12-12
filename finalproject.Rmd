@@ -16,6 +16,9 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ## 1. Introduction
+
+![](badminton.JPG)
+
 Badminton is a racquet sport whereby players take turn in hitting a shuttlecock across a net. There are 5 (five) disciplines in badminton, namely Men's Singles (MS), Women's Singles (WS), Men's Doubles (MD), Women's Doubles (WD) and Mixed Doubles (XD). The scoring system for all these disciplines is the same; each set begins with a score of 0-0, and the player who wins each rally gets an additional 1 (one) point. The first player who reaches 21 points wins this set. In the case where the score is 20-20, a two-point gap is needed for a player to win the set. The only exception is that when the score is 29-29, the player who obtains the next point wins the set. After completing a set, the players take a brief rest before continuing to the next set. The first player to win 2 (two) sets wins the match (this means a badminton match consists of either 2 (two) or 3 (three) sets). In a match where one player feels unfit to continue (e.g. due to an injury), she can opt to retire and her opponent wins the match.
 
 The Badminton World Federation (BWF) is the internationally recognized governing body of this sport with the main responsibility of organizing badminton tournaments each year (also known as season). There were 125 non-continental individual tournaments organized in the 2018 season, consisting of the following (in descending order of prestigiousness): BWF World Championships (1 tournament), BWF World Tour Finals (1 tournament), BWF World Tour Super 1000 (3 tournaments), BWF World Tour Super 750 (5 tournaments), BWF World Tour Super 500 (7 tournaments), BWF World Tour Super 300 (11 tournaments), BWF World Tour Super 100 (11 tournaments), BWF International Challenge (22 tournaments), BWF International Series (37 tournaments) and BWF Future Series (27 tournaments). In addition, there are 10 tournaments categorized as Continental Championships where only players from the respective continents are eligible to participate. 
@@ -43,7 +46,7 @@ Before we proceed further, we would like to introduce several useful acronyms us
 
 Tournament Disciplines: \
 MS = Men's Singles \
-Ws = Women's Singles \
+WS = Women's Singles \
 MD = Men's Doubles \
 WD = Women's Doubles \
 XD = Mixed Doubles \
@@ -639,7 +642,7 @@ Now, let us switch our focus to player-specific analyses.
 
 For this question, we are interested in the players with the highest winning percentage per discipline. A reasonable hypothesis is that high-ranked players tend to have the highest winning percentages. However, we will see in a moment that there is an extent to which this statement does not exactly hold. The following Cleveland dot plot shows the top 7 (seven) players with the highest percentage of wins per discipline.
 
-```{r}
+```{r fig.height = 6, fig.width = 10}
 data21_1 <- data %>% 
   select(Player.1.Name, Discipline, Winner)
 colnames(data21_1) <- c('Player.Name', 'Discipline', 'Winner')
@@ -677,7 +680,7 @@ Overall, we see that three players stood out, namely Gideon/Sukamuljo (INA), Zhe
 
 This question is very interesting. As mentioned in the introduction, we have seen a number of commentators dubbing Chou Tien Chen, a Chinese Taipei MS player, as a three-set specialist. This means out of all matches which he won, a large percentage of them are won in 3 (three) sets. Two direct generalized questions arise: who are the players with the highest percentage of three-set wins over all wins; and who are the players with the highest percentage of two-set wins over all wins? We have the answers below in the form of Cleveland dot plots (we only take the top 7 players for each discipline). 
 
-```{r}
+```{r fig.height = 6, fig.width = 10}
 data22 <- data
 data22 <- data22 %>%
   mutate(Number.Of.Set = (str_count(Match.Score, ',') + 1)/2) %>%
@@ -720,7 +723,7 @@ ggplot(graph11, aes(x=percent_twoset,
   theme(plot.title = element_text(hjust = 0.5))  
 ``` 
 
-```{r}
+```{r fig.height = 6, fig.width = 10}
 data22 <- data
 data22 <- data22 %>%
   mutate(Number.Of.Set = (str_count(Match.Score, ',') + 1)/2) %>%
@@ -794,7 +797,7 @@ data26 <- data26 %>%
          second_mcp = second_cp(Match.Statistic)) 
 ```
 
-```{r}
+```{r fig.height = 6, fig.width = 10}
 data27_1 <- data26 %>% 
   select(Player.1.Name, Player.1.Country, first_mcp, Discipline)
 colnames(data27_1) <- c('Player.Name', 'Player.Country', 'MCP', 'Discipline')
@@ -827,7 +830,7 @@ Another insight we obtain is that the names on the plot are generally top-ranked
 
 For this question, we are interested in knowing the players whose average set durations are the longest. Our hypothesis is that defensive players tend to play longer sets as they are more likely to retrieve and less likely to attack, hence resulting in longer rallies in general. To see whether our hypothesis checks out, let us look at the Cleveland dot plot below. We only include the top 7 (seven) players per discipline.
 
-```{r}
+```{r fig.height = 6, fig.width = 10}
 data24 <- data
 data24 <- data24 %>%
   mutate(Number.Of.Set = (str_count(Match.Score, ',') + 1)/2) %>%
@@ -970,7 +973,7 @@ This, however, may not always be accurate. There are many instances where top pl
 
 In all cases however, we can classify these 'unseeded wins' as a sign of career progression. Let us consider the following Cleveland dot plot, which lists the top 5 (five) players for each discipline.
 
-```{r}
+```{r fig.height = 6, fig.width = 10}
 data28 <- data
 data28 <- data28 %>%
   filter(as.numeric(is.na(Player.1.Seed)) + 
